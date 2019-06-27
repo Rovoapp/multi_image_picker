@@ -1,1 +1,2 @@
-include ':matisse'
+include ':multi_image_picker',
+        ':matisse'
