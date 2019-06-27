@@ -1,3 +1,4 @@
 rootProject.name = 'multi_image_picker'
 
-include ':android:matisse'
+include ':app',
+        ':matisse'
