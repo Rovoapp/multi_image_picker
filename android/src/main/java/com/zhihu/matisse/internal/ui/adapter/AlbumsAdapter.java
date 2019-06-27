@@ -27,7 +27,7 @@ import android.widget.CursorAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.zhihu.matisse.R;
+import com.vitanov.multiimagepicker.R;
 import com.zhihu.matisse.internal.entity.Album;
 import com.zhihu.matisse.internal.entity.SelectionSpec;
 

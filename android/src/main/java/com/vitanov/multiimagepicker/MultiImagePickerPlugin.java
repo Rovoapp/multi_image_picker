@@ -660,7 +660,7 @@ public class MultiImagePickerPlugin implements
             .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
             .thumbnailScale(0.85f)
             .imageEngine(new GlideEngine())
-            .menuItem("Done")
+            .menuItem(context.getString(R.string.all_done))
             .maxCountMessage(selectionLimitReachedText)
             .forResult(REQUEST_CODE_CHOOSE);
     }

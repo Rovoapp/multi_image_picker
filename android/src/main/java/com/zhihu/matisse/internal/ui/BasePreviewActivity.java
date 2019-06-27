@@ -25,7 +25,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.zhihu.matisse.R;
+import com.vitanov.multiimagepicker.R;
 import com.zhihu.matisse.internal.entity.IncapableCause;
 import com.zhihu.matisse.internal.entity.Item;
 import com.zhihu.matisse.internal.entity.SelectionSpec;
@@ -100,9 +100,9 @@ public abstract class BasePreviewActivity extends AppCompatActivity implements V
             mSelectedCollection.onCreate(savedInstanceState);
             mOriginalEnable = savedInstanceState.getBoolean(CHECK_STATE);
         }
-        mButtonBack = (TextView) findViewById(R.id.button_back);
-        mButtonApply = (TextView) findViewById(R.id.button_apply);
-        mSize = (TextView) findViewById(R.id.size);
+        mButtonBack = findViewById(R.id.button_back);
+        mButtonApply = findViewById(R.id.button_apply);
+        mSize = findViewById(R.id.size);
         mButtonBack.setOnClickListener(this);
         mButtonApply.setOnClickListener(this);
 

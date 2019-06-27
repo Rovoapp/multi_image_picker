@@ -37,7 +37,7 @@ import android.widget.AdapterView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.zhihu.matisse.R;
+import com.vitanov.multiimagepicker.R;
 import com.zhihu.matisse.internal.entity.Album;
 import com.zhihu.matisse.internal.entity.Item;
 import com.zhihu.matisse.internal.entity.SelectionSpec;
@@ -46,6 +46,7 @@ import com.zhihu.matisse.internal.model.SelectedItemCollection;
 import com.zhihu.matisse.internal.ui.AlbumPreviewActivity;
 import com.zhihu.matisse.internal.ui.BasePreviewActivity;
 import com.zhihu.matisse.internal.ui.MediaSelectionFragment;
+import com.zhihu.matisse.internal.ui.RVTextView;
 import com.zhihu.matisse.internal.ui.SelectedPreviewActivity;
 import com.zhihu.matisse.internal.ui.adapter.AlbumMediaAdapter;
 import com.zhihu.matisse.internal.ui.adapter.AlbumsAdapter;
@@ -140,8 +141,8 @@ public class MatisseActivity extends AppCompatActivity implements
         ta.recycle();
         navigationIcon.setColorFilter(color, PorterDuff.Mode.SRC_IN);
 
-        mButtonPreview = (TextView) findViewById(R.id.button_preview);
-        mButtonApply = (TextView) findViewById(R.id.button_apply);
+        mButtonPreview = findViewById(R.id.button_preview);
+        mButtonApply = findViewById(R.id.button_apply);
         mButtonPreview.setOnClickListener(this);
         mButtonApply.setOnClickListener(this);
         mContainer = findViewById(R.id.container);
@@ -159,7 +160,7 @@ public class MatisseActivity extends AppCompatActivity implements
         mAlbumsAdapter = new AlbumsAdapter(this, null, false);
         mAlbumsSpinner = new AlbumsSpinner(this);
         mAlbumsSpinner.setOnItemSelectedListener(this);
-        mAlbumsSpinner.setSelectedTextView((TextView) findViewById(R.id.selected_album));
+        mAlbumsSpinner.setSelectedTextView((RVTextView) findViewById(R.id.selected_album));
         mAlbumsSpinner.setPopupAnchorView(findViewById(R.id.toolbar));
         mAlbumsSpinner.setAdapter(mAlbumsAdapter);
         mAlbumCollection.onCreate(this, this);

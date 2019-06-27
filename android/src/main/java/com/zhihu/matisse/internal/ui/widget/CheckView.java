@@ -32,7 +32,7 @@ import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.view.View;
 
-import com.zhihu.matisse.R;
+import com.vitanov.multiimagepicker.R;
 
 public class CheckView extends View {
 

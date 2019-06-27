@@ -20,7 +20,7 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.TextUtils;
 
-import com.zhihu.matisse.R;
+import com.vitanov.multiimagepicker.R;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;

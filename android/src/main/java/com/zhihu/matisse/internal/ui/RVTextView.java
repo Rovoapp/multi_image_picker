@@ -8,7 +8,7 @@ import android.graphics.drawable.Drawable;
 import androidx.appcompat.widget.AppCompatTextView;
 import android.util.AttributeSet;
 
-import com.zhihu.matisse.R;
+import com.vitanov.multiimagepicker.R;
 import com.zhihu.matisse.internal.utils.TypefaceProvider;
 
 /**

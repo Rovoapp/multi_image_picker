@@ -22,7 +22,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.provider.MediaStore;
 
-import com.zhihu.matisse.R;
+import com.vitanov.multiimagepicker.R;
 import com.zhihu.matisse.internal.loader.AlbumLoader;
 
 import androidx.annotation.Nullable;

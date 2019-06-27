@@ -28,8 +28,8 @@ import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 import android.util.Log;
 
+import com.vitanov.multiimagepicker.R;
 import com.zhihu.matisse.MimeType;
-import com.zhihu.matisse.R;
 import com.zhihu.matisse.filter.Filter;
 import com.zhihu.matisse.internal.entity.Item;
 import com.zhihu.matisse.internal.entity.SelectionSpec;

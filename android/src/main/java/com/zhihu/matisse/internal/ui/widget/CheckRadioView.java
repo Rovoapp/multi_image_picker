@@ -5,7 +5,7 @@ import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 
-import com.zhihu.matisse.R;
+import com.vitanov.multiimagepicker.R;
 
 import androidx.appcompat.widget.AppCompatImageView;
 import androidx.core.content.res.ResourcesCompat;

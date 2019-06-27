@@ -18,8 +18,8 @@ package com.zhihu.matisse.internal.entity;
 
 import android.content.pm.ActivityInfo;
 
+import com.vitanov.multiimagepicker.R;
 import com.zhihu.matisse.MimeType;
-import com.zhihu.matisse.R;
 import com.zhihu.matisse.engine.ImageEngine;
 import com.zhihu.matisse.engine.impl.GlideEngine;
 import com.zhihu.matisse.filter.Filter;
