@@ -650,7 +650,7 @@ public class MultiImagePickerPlugin implements
             selectedUris.add(Uri.parse(path));
         }
 
-        Matisse.from((Activity) context)
+        Matisse.from(activity)
             .choose(MimeType.ofImage(), true)
             .showSingleMediaType(true)
             .capture(true)
