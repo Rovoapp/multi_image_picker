@@ -1,3 +1,2 @@
-rootProject.name = 'multi_image_picker'
-
-include ':vendor:matisse'
+include ':multi_image_picker',
+        ':vendor:matisse'
