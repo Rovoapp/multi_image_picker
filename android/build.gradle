@@ -1,5 +1,4 @@
-group 'com.vitanov.multiimagepicker'
-version '4.3.4'
+apply plugin: 'com.android.application'
 
 buildscript {
     repositories {
@@ -20,8 +19,6 @@ rootProject.allprojects {
     }
 }
 
-apply plugin: 'com.android.library'
-
 android {
     compileSdkVersion 28
 
@@ -36,7 +33,7 @@ android {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation project(':android:matisse')
+    implementation project(':matisse')
     implementation 'androidx.exifinterface:exifinterface:1.0.0'
     implementation 'com.github.bumptech.glide:glide:4.9.0'
 }
