@@ -1,2 +1,2 @@
-include ':multi_image_picker',
+include ':android',
         ':vendor:matisse'
