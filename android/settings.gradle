@@ -1,1 +1,3 @@
 rootProject.name = 'multi_image_picker'
+
+include ':vendor:matisse'

@@ -1,31 +1,37 @@
 package com.vitanov.multiimagepicker;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.CursorIndexOutOfBoundsException;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.graphics.Matrix;
 import android.media.MediaScannerConnection;
 import android.media.ThumbnailUtils;
 import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.provider.OpenableColumns;
+import android.text.TextUtils;
 
-import com.sangcomz.fishbun.FishBun;
-import com.sangcomz.fishbun.FishBunCreator;
-import com.sangcomz.fishbun.adapter.image.impl.GlideAdapter;
-import com.sangcomz.fishbun.define.Define;
+import com.zhihu.matisse.Matisse;
+import com.zhihu.matisse.MimeType;
+import com.zhihu.matisse.engine.impl.GlideEngine;
+import com.zhihu.matisse.internal.entity.CaptureStrategy;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.Math;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
@@ -38,19 +44,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
-import android.Manifest;
-import android.os.AsyncTask;
-import android.os.Build;
-import android.provider.OpenableColumns;
-import android.os.Environment;
-import android.provider.MediaStore;
-
 import androidx.annotation.NonNull;
-import androidx.exifinterface.media.ExifInterface;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import android.text.TextUtils;
-
+import androidx.exifinterface.media.ExifInterface;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
@@ -61,23 +58,21 @@ import io.flutter.plugin.common.PluginRegistry.Registrar;
 
 import static android.media.ThumbnailUtils.OPTIONS_RECYCLE_INPUT;
 import static com.vitanov.multiimagepicker.FileDirectory.getPath;
-import static java.util.Arrays.asList;
 
 /**
  * MultiImagePickerPlugin
  */
 public class MultiImagePickerPlugin implements
-        MethodCallHandler,
-        PluginRegistry.ActivityResultListener,
-        PluginRegistry.RequestPermissionsResultListener {
-
+    MethodCallHandler,
+    PluginRegistry.ActivityResultListener,
+    PluginRegistry.RequestPermissionsResultListener {
     private static final String CHANNEL_NAME = "multi_image_picker";
     private static final String REQUEST_THUMBNAIL = "requestThumbnail";
     private static final String REQUEST_ORIGINAL = "requestOriginal";
     private static final String REQUEST_METADATA = "requestMetadata";
     private static final String PICK_IMAGES = "pickImages";
     private static final String DELETE_IMAGES = "deleteImages";
-    private static final String REFRESH_IMAGE = "refreshImage" ;
+    private static final String REFRESH_IMAGE = "refreshImage";
     private static final String MAX_IMAGES = "maxImages";
     private static final String SELECTED_ASSETS = "selectedAssets";
     private static final String ENABLE_CAMERA = "enableCamera";
@@ -102,8 +97,8 @@ public class MultiImagePickerPlugin implements
     public boolean onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode == REQUEST_CODE_GRANT_PERMISSIONS && permissions.length == 3) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED
-                    && grantResults[1] == PackageManager.PERMISSION_GRANTED
-                    && grantResults[2] == PackageManager.PERMISSION_GRANTED) {
+                && grantResults[1] == PackageManager.PERMISSION_GRANTED
+                && grantResults[2] == PackageManager.PERMISSION_GRANTED) {
                 int maxImages = (int) this.methodCall.argument(MAX_IMAGES);
                 boolean enableCamera = (boolean) this.methodCall.argument(ENABLE_CAMERA);
                 HashMap<String, String> options = this.methodCall.argument(ANDROID_OPTIONS);
@@ -112,11 +107,11 @@ public class MultiImagePickerPlugin implements
                 presentPicker(maxImages, enableCamera, selectedAssets, options);
             } else {
                 if (
-                        ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.READ_EXTERNAL_STORAGE) ||
-                                ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) ||
-                                ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.CAMERA)) {
+                    ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.READ_EXTERNAL_STORAGE) ||
+                        ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) ||
+                        ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.CAMERA)) {
                     finishWithError("PERMISSION_DENIED", "Read, write or camera permission was not granted");
-                } else{
+                } else {
                     finishWithError("PERMISSION_PERMANENTLY_DENIED", "Please enable access to the storage and the camera.");
                 }
                 return false;
@@ -166,12 +161,16 @@ public class MultiImagePickerPlugin implements
             try {
                 // get a reference to the activity if it is still there
                 Activity activity = activityReference.get();
-                if (activity == null || activity.isFinishing()) return null;
+                if (activity == null || activity.isFinishing()) {
+                    return null;
+                }
 
                 Bitmap sourceBitmap = getCorrectlyOrientedImage(activity, uri);
                 Bitmap bitmap = ThumbnailUtils.extractThumbnail(sourceBitmap, this.width, this.height, OPTIONS_RECYCLE_INPUT);
 
-                if (bitmap == null) return null;
+                if (bitmap == null) {
+                    return null;
+                }
 
                 ByteArrayOutputStream bitmapStream = new ByteArrayOutputStream();
                 bitmap.compress(Bitmap.CompressFormat.JPEG, this.quality, bitmapStream);
@@ -210,10 +209,10 @@ public class MultiImagePickerPlugin implements
         ArrayList<ContentProviderOperation> operationList = new ArrayList<>();
         ContentProviderOperation contentProviderOperation;
 
-        for (File file: files) {
+        for (File file : files) {
             // Match on the file path
             contentProviderOperation = ContentProviderOperation.newDelete(queryUri)
-                    .withSelection(MediaStore.Images.Media.DATA + " =? ", new String[]{file.getAbsolutePath()}).build();
+                .withSelection(MediaStore.Images.Media.DATA + " =? ", new String[]{file.getAbsolutePath()}).build();
             operationList.add(contentProviderOperation);
         }
 
@@ -243,8 +242,10 @@ public class MultiImagePickerPlugin implements
             try {
                 // get a reference to the activity if it is still there
                 Activity activity = activityReference.get();
-                if (activity == null || activity.isFinishing()) return null;
-                for (String identifier: this.identifiers) {
+                if (activity == null || activity.isFinishing()) {
+                    return null;
+                }
+                for (String identifier : this.identifiers) {
                     final Uri uri = Uri.parse(identifier);
                     String path = getPath(activity, uri);
                     File file = new File(path);
@@ -285,11 +286,15 @@ public class MultiImagePickerPlugin implements
             try {
                 // get a reference to the activity if it is still there
                 Activity activity = activityReference.get();
-                if (activity == null || activity.isFinishing()) return null;
+                if (activity == null || activity.isFinishing()) {
+                    return null;
+                }
 
                 Bitmap bitmap = getCorrectlyOrientedImage(activity, uri);
 
-                if (bitmap == null) return null;
+                if (bitmap == null) {
+                    return null;
+                }
 
                 ByteArrayOutputStream bitmapStream = new ByteArrayOutputStream();
                 bitmap.compress(Bitmap.CompressFormat.JPEG, this.quality, bitmapStream);
@@ -325,8 +330,7 @@ public class MultiImagePickerPlugin implements
         if (PICK_IMAGES.equals(call.method)) {
             final HashMap<String, String> options = call.argument(ANDROID_OPTIONS);
             openImagePicker(options);
-        }
-        else if (DELETE_IMAGES.equals(call.method)) {
+        } else if (DELETE_IMAGES.equals(call.method)) {
             final ArrayList<String> identifiers = call.argument("identifiers");
             DeleteImageTask task = new DeleteImageTask(this.activity, identifiers);
             task.execute();
@@ -360,7 +364,7 @@ public class MultiImagePickerPlugin implements
             }
 
         } else if (REFRESH_IMAGE.equals(call.method)) {
-            String path = call.argument("path") ;
+            String path = call.argument("path");
             refreshGallery(path);
         } else {
             pendingResult.notImplemented();
@@ -373,28 +377,28 @@ public class MultiImagePickerPlugin implements
 
         // API LEVEL 24
         String[] tags_str = {
-                ExifInterface.TAG_GPS_LATITUDE_REF,
-                ExifInterface.TAG_GPS_LONGITUDE_REF,
-                ExifInterface.TAG_GPS_PROCESSING_METHOD,
-                ExifInterface.TAG_IMAGE_WIDTH,
-                ExifInterface.TAG_IMAGE_LENGTH,
-                ExifInterface.TAG_MAKE,
-                ExifInterface.TAG_MODEL
+            ExifInterface.TAG_GPS_LATITUDE_REF,
+            ExifInterface.TAG_GPS_LONGITUDE_REF,
+            ExifInterface.TAG_GPS_PROCESSING_METHOD,
+            ExifInterface.TAG_IMAGE_WIDTH,
+            ExifInterface.TAG_IMAGE_LENGTH,
+            ExifInterface.TAG_MAKE,
+            ExifInterface.TAG_MODEL
         };
         String[] tags_double = {
-                ExifInterface.TAG_APERTURE_VALUE,
-                ExifInterface.TAG_FLASH,
-                ExifInterface.TAG_FOCAL_LENGTH,
-                ExifInterface.TAG_GPS_ALTITUDE,
-                ExifInterface.TAG_GPS_ALTITUDE_REF,
-                ExifInterface.TAG_GPS_LONGITUDE,
-                ExifInterface.TAG_GPS_LATITUDE,
-                ExifInterface.TAG_IMAGE_LENGTH,
-                ExifInterface.TAG_IMAGE_WIDTH,
-                ExifInterface.TAG_ISO_SPEED,
-                ExifInterface.TAG_ORIENTATION,
-                ExifInterface.TAG_WHITE_BALANCE,
-                ExifInterface.TAG_EXPOSURE_TIME
+            ExifInterface.TAG_APERTURE_VALUE,
+            ExifInterface.TAG_FLASH,
+            ExifInterface.TAG_FOCAL_LENGTH,
+            ExifInterface.TAG_GPS_ALTITUDE,
+            ExifInterface.TAG_GPS_ALTITUDE_REF,
+            ExifInterface.TAG_GPS_LONGITUDE,
+            ExifInterface.TAG_GPS_LATITUDE,
+            ExifInterface.TAG_IMAGE_LENGTH,
+            ExifInterface.TAG_IMAGE_WIDTH,
+            ExifInterface.TAG_ISO_SPEED,
+            ExifInterface.TAG_ORIENTATION,
+            ExifInterface.TAG_WHITE_BALANCE,
+            ExifInterface.TAG_EXPOSURE_TIME
         };
         HashMap<String, Object> exif_str = getExif_str(exifInterface, tags_str);
         result.putAll(exif_str);
@@ -404,8 +408,8 @@ public class MultiImagePickerPlugin implements
         // A Temp fix while location data is not returned from the exifInterface due to the errors:
         //
         if (exif_double.isEmpty()
-                || !exif_double.containsKey(ExifInterface.TAG_GPS_LATITUDE)
-                || !exif_double.containsKey(ExifInterface.TAG_GPS_LONGITUDE)) {
+            || !exif_double.containsKey(ExifInterface.TAG_GPS_LATITUDE)
+            || !exif_double.containsKey(ExifInterface.TAG_GPS_LONGITUDE)) {
 
             if (uri != null) {
                 HashMap<String, Object> hotfix_map = getLatLng(uri);
@@ -415,10 +419,10 @@ public class MultiImagePickerPlugin implements
 
         if (Build.VERSION.SDK_INT == Build.VERSION_CODES.M) {
             String[] tags_23 = {
-                    ExifInterface.TAG_DATETIME_DIGITIZED,
-                    ExifInterface.TAG_SUBSEC_TIME,
-                    ExifInterface.TAG_SUBSEC_TIME_DIGITIZED,
-                    ExifInterface.TAG_SUBSEC_TIME_ORIGINAL
+                ExifInterface.TAG_DATETIME_DIGITIZED,
+                ExifInterface.TAG_SUBSEC_TIME,
+                ExifInterface.TAG_SUBSEC_TIME_DIGITIZED,
+                ExifInterface.TAG_SUBSEC_TIME_ORIGINAL
             };
             HashMap<String, Object> exif23 = getExif_str(exifInterface, tags_23);
             result.putAll(exif23);
@@ -426,107 +430,107 @@ public class MultiImagePickerPlugin implements
 
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
             String[] tags_24_str = {
-                    ExifInterface.TAG_ARTIST,
-                    ExifInterface.TAG_CFA_PATTERN,
-                    ExifInterface.TAG_COMPONENTS_CONFIGURATION,
-                    ExifInterface.TAG_COPYRIGHT,
-                    ExifInterface.TAG_DATETIME_ORIGINAL,
-                    ExifInterface.TAG_DEVICE_SETTING_DESCRIPTION,
-                    ExifInterface.TAG_EXIF_VERSION,
-                    ExifInterface.TAG_FILE_SOURCE,
-                    ExifInterface.TAG_FLASHPIX_VERSION,
-                    ExifInterface.TAG_GPS_AREA_INFORMATION,
-                    ExifInterface.TAG_GPS_DEST_BEARING_REF,
-                    ExifInterface.TAG_GPS_DEST_DISTANCE_REF,
-                    ExifInterface.TAG_GPS_DEST_LATITUDE_REF,
-                    ExifInterface.TAG_GPS_DEST_LONGITUDE_REF,
-                    ExifInterface.TAG_GPS_DOP,
-                    ExifInterface.TAG_GPS_IMG_DIRECTION,
-                    ExifInterface.TAG_GPS_IMG_DIRECTION_REF,
-                    ExifInterface.TAG_GPS_MAP_DATUM,
-                    ExifInterface.TAG_GPS_MEASURE_MODE,
-                    ExifInterface.TAG_GPS_SATELLITES,
-                    ExifInterface.TAG_GPS_SPEED_REF,
-                    ExifInterface.TAG_GPS_STATUS,
-                    ExifInterface.TAG_GPS_TRACK_REF,
-                    ExifInterface.TAG_GPS_VERSION_ID,
-                    ExifInterface.TAG_IMAGE_DESCRIPTION,
-                    ExifInterface.TAG_IMAGE_UNIQUE_ID,
-                    ExifInterface.TAG_INTEROPERABILITY_INDEX,
-                    ExifInterface.TAG_MAKER_NOTE,
-                    ExifInterface.TAG_OECF,
-                    ExifInterface.TAG_RELATED_SOUND_FILE,
-                    ExifInterface.TAG_SCENE_TYPE,
-                    ExifInterface.TAG_SOFTWARE,
-                    ExifInterface.TAG_SPATIAL_FREQUENCY_RESPONSE,
-                    ExifInterface.TAG_SPECTRAL_SENSITIVITY,
-                    ExifInterface.TAG_SUBSEC_TIME_DIGITIZED,
-                    ExifInterface.TAG_SUBSEC_TIME_ORIGINAL,
-                    ExifInterface.TAG_USER_COMMENT
+                ExifInterface.TAG_ARTIST,
+                ExifInterface.TAG_CFA_PATTERN,
+                ExifInterface.TAG_COMPONENTS_CONFIGURATION,
+                ExifInterface.TAG_COPYRIGHT,
+                ExifInterface.TAG_DATETIME_ORIGINAL,
+                ExifInterface.TAG_DEVICE_SETTING_DESCRIPTION,
+                ExifInterface.TAG_EXIF_VERSION,
+                ExifInterface.TAG_FILE_SOURCE,
+                ExifInterface.TAG_FLASHPIX_VERSION,
+                ExifInterface.TAG_GPS_AREA_INFORMATION,
+                ExifInterface.TAG_GPS_DEST_BEARING_REF,
+                ExifInterface.TAG_GPS_DEST_DISTANCE_REF,
+                ExifInterface.TAG_GPS_DEST_LATITUDE_REF,
+                ExifInterface.TAG_GPS_DEST_LONGITUDE_REF,
+                ExifInterface.TAG_GPS_DOP,
+                ExifInterface.TAG_GPS_IMG_DIRECTION,
+                ExifInterface.TAG_GPS_IMG_DIRECTION_REF,
+                ExifInterface.TAG_GPS_MAP_DATUM,
+                ExifInterface.TAG_GPS_MEASURE_MODE,
+                ExifInterface.TAG_GPS_SATELLITES,
+                ExifInterface.TAG_GPS_SPEED_REF,
+                ExifInterface.TAG_GPS_STATUS,
+                ExifInterface.TAG_GPS_TRACK_REF,
+                ExifInterface.TAG_GPS_VERSION_ID,
+                ExifInterface.TAG_IMAGE_DESCRIPTION,
+                ExifInterface.TAG_IMAGE_UNIQUE_ID,
+                ExifInterface.TAG_INTEROPERABILITY_INDEX,
+                ExifInterface.TAG_MAKER_NOTE,
+                ExifInterface.TAG_OECF,
+                ExifInterface.TAG_RELATED_SOUND_FILE,
+                ExifInterface.TAG_SCENE_TYPE,
+                ExifInterface.TAG_SOFTWARE,
+                ExifInterface.TAG_SPATIAL_FREQUENCY_RESPONSE,
+                ExifInterface.TAG_SPECTRAL_SENSITIVITY,
+                ExifInterface.TAG_SUBSEC_TIME_DIGITIZED,
+                ExifInterface.TAG_SUBSEC_TIME_ORIGINAL,
+                ExifInterface.TAG_USER_COMMENT
             };
 
             String[] tags24_double = {
-                    ExifInterface.TAG_APERTURE_VALUE,
-                    ExifInterface.TAG_BITS_PER_SAMPLE,
-                    ExifInterface.TAG_BRIGHTNESS_VALUE,
-                    ExifInterface.TAG_COLOR_SPACE,
-                    ExifInterface.TAG_COMPRESSED_BITS_PER_PIXEL,
-                    ExifInterface.TAG_COMPRESSION,
-                    ExifInterface.TAG_CONTRAST,
-                    ExifInterface.TAG_CUSTOM_RENDERED,
-                    ExifInterface.TAG_DIGITAL_ZOOM_RATIO,
-                    ExifInterface.TAG_EXPOSURE_BIAS_VALUE,
-                    ExifInterface.TAG_EXPOSURE_INDEX,
-                    ExifInterface.TAG_EXPOSURE_MODE,
-                    ExifInterface.TAG_EXPOSURE_PROGRAM,
-                    ExifInterface.TAG_FLASH_ENERGY,
-                    ExifInterface.TAG_FOCAL_LENGTH_IN_35MM_FILM,
-                    ExifInterface.TAG_FOCAL_PLANE_RESOLUTION_UNIT,
-                    ExifInterface.TAG_FOCAL_PLANE_X_RESOLUTION,
-                    ExifInterface.TAG_FOCAL_PLANE_Y_RESOLUTION,
-                    ExifInterface.TAG_F_NUMBER,
-                    ExifInterface.TAG_GAIN_CONTROL,
-                    ExifInterface.TAG_GPS_DEST_BEARING,
-                    ExifInterface.TAG_GPS_DEST_DISTANCE,
-                    ExifInterface.TAG_GPS_DEST_LATITUDE,
-                    ExifInterface.TAG_GPS_DEST_LONGITUDE,
-                    ExifInterface.TAG_GPS_DIFFERENTIAL,
-                    ExifInterface.TAG_GPS_SPEED,
-                    ExifInterface.TAG_GPS_TRACK,
-                    ExifInterface.TAG_JPEG_INTERCHANGE_FORMAT,
-                    ExifInterface.TAG_JPEG_INTERCHANGE_FORMAT_LENGTH,
-                    ExifInterface.TAG_LIGHT_SOURCE,
-                    ExifInterface.TAG_MAX_APERTURE_VALUE,
-                    ExifInterface.TAG_METERING_MODE,
-                    ExifInterface.TAG_PHOTOMETRIC_INTERPRETATION,
-                    ExifInterface.TAG_PIXEL_X_DIMENSION,
-                    ExifInterface.TAG_PIXEL_Y_DIMENSION,
-                    ExifInterface.TAG_PLANAR_CONFIGURATION,
-                    ExifInterface.TAG_PRIMARY_CHROMATICITIES,
-                    ExifInterface.TAG_REFERENCE_BLACK_WHITE,
-                    ExifInterface.TAG_RESOLUTION_UNIT,
-                    ExifInterface.TAG_ROWS_PER_STRIP,
-                    ExifInterface.TAG_SAMPLES_PER_PIXEL,
-                    ExifInterface.TAG_SATURATION,
-                    ExifInterface.TAG_SCENE_CAPTURE_TYPE,
-                    ExifInterface.TAG_SENSING_METHOD,
-                    ExifInterface.TAG_SHARPNESS,
-                    ExifInterface.TAG_SHUTTER_SPEED_VALUE,
-                    ExifInterface.TAG_STRIP_BYTE_COUNTS,
-                    ExifInterface.TAG_STRIP_OFFSETS,
-                    ExifInterface.TAG_SUBJECT_AREA,
-                    ExifInterface.TAG_SUBJECT_DISTANCE,
-                    ExifInterface.TAG_SUBJECT_DISTANCE_RANGE,
-                    ExifInterface.TAG_SUBJECT_LOCATION,
-                    ExifInterface.TAG_THUMBNAIL_IMAGE_LENGTH,
-                    ExifInterface.TAG_THUMBNAIL_IMAGE_WIDTH,
-                    ExifInterface.TAG_TRANSFER_FUNCTION,
-                    ExifInterface.TAG_WHITE_POINT,
-                    ExifInterface.TAG_X_RESOLUTION,
-                    ExifInterface.TAG_Y_CB_CR_COEFFICIENTS,
-                    ExifInterface.TAG_Y_CB_CR_POSITIONING,
-                    ExifInterface.TAG_Y_CB_CR_SUB_SAMPLING,
-                    ExifInterface.TAG_Y_RESOLUTION,
+                ExifInterface.TAG_APERTURE_VALUE,
+                ExifInterface.TAG_BITS_PER_SAMPLE,
+                ExifInterface.TAG_BRIGHTNESS_VALUE,
+                ExifInterface.TAG_COLOR_SPACE,
+                ExifInterface.TAG_COMPRESSED_BITS_PER_PIXEL,
+                ExifInterface.TAG_COMPRESSION,
+                ExifInterface.TAG_CONTRAST,
+                ExifInterface.TAG_CUSTOM_RENDERED,
+                ExifInterface.TAG_DIGITAL_ZOOM_RATIO,
+                ExifInterface.TAG_EXPOSURE_BIAS_VALUE,
+                ExifInterface.TAG_EXPOSURE_INDEX,
+                ExifInterface.TAG_EXPOSURE_MODE,
+                ExifInterface.TAG_EXPOSURE_PROGRAM,
+                ExifInterface.TAG_FLASH_ENERGY,
+                ExifInterface.TAG_FOCAL_LENGTH_IN_35MM_FILM,
+                ExifInterface.TAG_FOCAL_PLANE_RESOLUTION_UNIT,
+                ExifInterface.TAG_FOCAL_PLANE_X_RESOLUTION,
+                ExifInterface.TAG_FOCAL_PLANE_Y_RESOLUTION,
+                ExifInterface.TAG_F_NUMBER,
+                ExifInterface.TAG_GAIN_CONTROL,
+                ExifInterface.TAG_GPS_DEST_BEARING,
+                ExifInterface.TAG_GPS_DEST_DISTANCE,
+                ExifInterface.TAG_GPS_DEST_LATITUDE,
+                ExifInterface.TAG_GPS_DEST_LONGITUDE,
+                ExifInterface.TAG_GPS_DIFFERENTIAL,
+                ExifInterface.TAG_GPS_SPEED,
+                ExifInterface.TAG_GPS_TRACK,
+                ExifInterface.TAG_JPEG_INTERCHANGE_FORMAT,
+                ExifInterface.TAG_JPEG_INTERCHANGE_FORMAT_LENGTH,
+                ExifInterface.TAG_LIGHT_SOURCE,
+                ExifInterface.TAG_MAX_APERTURE_VALUE,
+                ExifInterface.TAG_METERING_MODE,
+                ExifInterface.TAG_PHOTOMETRIC_INTERPRETATION,
+                ExifInterface.TAG_PIXEL_X_DIMENSION,
+                ExifInterface.TAG_PIXEL_Y_DIMENSION,
+                ExifInterface.TAG_PLANAR_CONFIGURATION,
+                ExifInterface.TAG_PRIMARY_CHROMATICITIES,
+                ExifInterface.TAG_REFERENCE_BLACK_WHITE,
+                ExifInterface.TAG_RESOLUTION_UNIT,
+                ExifInterface.TAG_ROWS_PER_STRIP,
+                ExifInterface.TAG_SAMPLES_PER_PIXEL,
+                ExifInterface.TAG_SATURATION,
+                ExifInterface.TAG_SCENE_CAPTURE_TYPE,
+                ExifInterface.TAG_SENSING_METHOD,
+                ExifInterface.TAG_SHARPNESS,
+                ExifInterface.TAG_SHUTTER_SPEED_VALUE,
+                ExifInterface.TAG_STRIP_BYTE_COUNTS,
+                ExifInterface.TAG_STRIP_OFFSETS,
+                ExifInterface.TAG_SUBJECT_AREA,
+                ExifInterface.TAG_SUBJECT_DISTANCE,
+                ExifInterface.TAG_SUBJECT_DISTANCE_RANGE,
+                ExifInterface.TAG_SUBJECT_LOCATION,
+                ExifInterface.TAG_THUMBNAIL_IMAGE_LENGTH,
+                ExifInterface.TAG_THUMBNAIL_IMAGE_WIDTH,
+                ExifInterface.TAG_TRANSFER_FUNCTION,
+                ExifInterface.TAG_WHITE_POINT,
+                ExifInterface.TAG_X_RESOLUTION,
+                ExifInterface.TAG_Y_CB_CR_COEFFICIENTS,
+                ExifInterface.TAG_Y_CB_CR_POSITIONING,
+                ExifInterface.TAG_Y_CB_CR_SUB_SAMPLING,
+                ExifInterface.TAG_Y_RESOLUTION,
             };
             HashMap<String, Object> exif24_str = getExif_str(exifInterface, tags_24_str);
             result.putAll(exif24_str);
@@ -539,13 +543,17 @@ public class MultiImagePickerPlugin implements
         String TAG_GPS_TIMESTAMP = exifInterface.getAttribute(ExifInterface.TAG_GPS_TIMESTAMP);
         long dateTime = formatTime(TAG_DATETIME, "yy:mm:dd hh:mm:ss");
         long gpsDateTime = formatTime(TAG_GPS_TIMESTAMP, "hh:mm:ss");
-        if (dateTime != 0) result.put(ExifInterface.TAG_DATETIME, dateTime);
-        if (gpsDateTime != 0) result.put(ExifInterface.TAG_GPS_TIMESTAMP, TAG_GPS_TIMESTAMP);
+        if (dateTime != 0) {
+            result.put(ExifInterface.TAG_DATETIME, dateTime);
+        }
+        if (gpsDateTime != 0) {
+            result.put(ExifInterface.TAG_GPS_TIMESTAMP, TAG_GPS_TIMESTAMP);
+        }
 
         return result;
     }
 
-    private HashMap<String, Object> getExif_str(ExifInterface exifInterface, String[] tags){
+    private HashMap<String, Object> getExif_str(ExifInterface exifInterface, String[] tags) {
         HashMap<String, Object> result = new HashMap<>();
         for (String tag : tags) {
             String attribute = exifInterface.getAttribute(tag);
@@ -556,7 +564,7 @@ public class MultiImagePickerPlugin implements
         return result;
     }
 
-    private HashMap<String, Object> getExif_double(ExifInterface exifInterface, String[] tags){
+    private HashMap<String, Object> getExif_double(ExifInterface exifInterface, String[] tags) {
         HashMap<String, Object> result = new HashMap<>();
         for (String tag : tags) {
             double attribute = exifInterface.getAttributeDouble(tag, 0.0);
@@ -569,7 +577,9 @@ public class MultiImagePickerPlugin implements
 
     private long formatTime(String date_str, String format_str) {
 
-        if (date_str == null) return 0;
+        if (date_str == null) {
+            return 0;
+        }
         try {
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat(format_str, Locale.US);
             Date parse = null;
@@ -584,19 +594,19 @@ public class MultiImagePickerPlugin implements
     private void openImagePicker(HashMap<String, String> options) {
 
         if (ContextCompat.checkSelfPermission(this.activity,
-                Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this.activity,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this.activity,
-                Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
+            Manifest.permission.READ_EXTERNAL_STORAGE)
+            != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this.activity,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this.activity,
+            Manifest.permission.CAMERA)
+            != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this.activity,
-                    new String[]{
-                            Manifest.permission.READ_EXTERNAL_STORAGE,
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                            Manifest.permission.CAMERA
-                    },
-                    REQUEST_CODE_GRANT_PERMISSIONS);
+                new String[]{
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    Manifest.permission.CAMERA
+                },
+                REQUEST_CODE_GRANT_PERMISSIONS);
 
         } else {
             int maxImages = (int) this.methodCall.argument(MAX_IMAGES);
@@ -630,7 +640,7 @@ public class MultiImagePickerPlugin implements
         String lightStatusBar = options.get("lightStatusBar");
         String actionBarTitle = options.get("actionBarTitle");
         String actionBarTitleColor = options.get("actionBarTitleColor");
-        String allViewTitle =  options.get("allViewTitle");
+        String allViewTitle = options.get("allViewTitle");
         String startInAllView = options.get("startInAllView");
         String selectCircleStrokeColor = options.get("selectCircleStrokeColor");
         String selectionLimitReachedText = options.get("selectionLimitReachedText");
@@ -640,59 +650,25 @@ public class MultiImagePickerPlugin implements
             selectedUris.add(Uri.parse(path));
         }
 
-        FishBunCreator fishBun = FishBun.with(MultiImagePickerPlugin.this.activity)
-                .setImageAdapter(new GlideAdapter())
-                .setMaxCount(maxImages)
-                .setCamera(enableCamera)
-                .setRequestCode(REQUEST_CODE_CHOOSE)
-                .setSelectedImages(selectedUris)
-                .exceptGif(true)
-                .isStartInAllView(startInAllView.equals("true"));
-
-        if (actionBarColor != null && !actionBarColor.isEmpty()) {
-            int color = Color.parseColor(actionBarColor);
-            if (statusBarColor != null && !statusBarColor.isEmpty()) {
-                int statusBarColorInt = Color.parseColor(statusBarColor);
-                if (lightStatusBar != null && !lightStatusBar.isEmpty()) {
-                    boolean lightStatusBarValue = lightStatusBar.equals("true");
-                    fishBun.setActionBarColor(color, statusBarColorInt, lightStatusBarValue);
-                } else {
-                    fishBun.setActionBarColor(color, statusBarColorInt);
-                }
-            } else {
-                fishBun.setActionBarColor(color);
-            }
-        }
-
-        if (actionBarTitle != null && !actionBarTitle.isEmpty()) {
-            fishBun.setActionBarTitle(actionBarTitle);
-        }
-
-        if (selectionLimitReachedText != null && !selectionLimitReachedText.isEmpty()) {
-            fishBun.textOnImagesSelectionLimitReached(selectionLimitReachedText);
-        }
-
-        if (selectCircleStrokeColor != null && !selectCircleStrokeColor.isEmpty()) {
-            fishBun.setSelectCircleStrokeColor(Color.parseColor(selectCircleStrokeColor));
-        }
-
-        if (actionBarTitleColor != null && !actionBarTitleColor.isEmpty()) {
-            int color = Color.parseColor(actionBarTitleColor);
-            fishBun.setActionBarTitleColor(color);
-        }
-
-        if (allViewTitle != null && !allViewTitle.isEmpty()) {
-            fishBun.setAllViewTitle(allViewTitle);
-        }
-
-        fishBun.startAlbum();
-
+        Matisse.from((Activity) context)
+            .choose(MimeType.ofImage(), true)
+            .showSingleMediaType(true)
+            .capture(true)
+            .captureStrategy(new CaptureStrategy(true, String.format(Locale.ENGLISH, "%s.fileprovider", context.getPackageName())))
+            .countable(true)
+            .maxSelectable(10 - selectedAssets.size())
+            .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+            .thumbnailScale(0.85f)
+            .imageEngine(new GlideEngine())
+            .menuItem("Done")
+            .maxCountMessage(selectionLimitReachedText)
+            .forResult(REQUEST_CODE_CHOOSE);
     }
 
     @Override
     public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_CHOOSE && resultCode == Activity.RESULT_OK) {
-            List<Uri> photos = data.getParcelableArrayListExtra(Define.INTENT_PATH);
+            List<Uri> photos = Matisse.obtainResult(data);
             List<HashMap<String, Object>> result = new ArrayList<>(photos.size());
             for (Uri uri : photos) {
                 HashMap<String, Object> map = new HashMap<>();
@@ -822,7 +798,7 @@ public class MultiImagePickerPlugin implements
 
     private static int getOrientation(Context context, Uri photoUri) {
         try (Cursor cursor = context.getContentResolver().query(photoUri,
-                new String[]{MediaStore.Images.ImageColumns.ORIENTATION}, null, null, null)) {
+            new String[]{MediaStore.Images.ImageColumns.ORIENTATION}, null, null, null)) {
 
             if (cursor == null || cursor.getCount() != 1) {
                 return -1;
@@ -861,38 +837,43 @@ public class MultiImagePickerPlugin implements
             matrix.postRotate(orientation);
 
             srcBitmap = Bitmap.createBitmap(srcBitmap, 0, 0, srcBitmap.getWidth(),
-                    srcBitmap.getHeight(), matrix, true);
+                srcBitmap.getHeight(), matrix, true);
         }
 
         return srcBitmap;
     }
 
     private void finishWithSuccess(List imagePathList) {
-        if (pendingResult != null)
+        if (pendingResult != null) {
             pendingResult.success(imagePathList);
+        }
         clearMethodCallAndResult();
     }
 
     private void finishWithSuccess(HashMap<String, Object> hashMap) {
-        if (pendingResult != null)
+        if (pendingResult != null) {
             pendingResult.success(hashMap);
+        }
         clearMethodCallAndResult();
     }
 
     private void finishWithSuccess() {
-        if (pendingResult != null)
+        if (pendingResult != null) {
             pendingResult.success(true);
+        }
         clearMethodCallAndResult();
     }
 
     private void finishWithAlreadyActiveError(MethodChannel.Result result) {
-        if (result != null)
+        if (result != null) {
             result.error("already_active", "Image picker is already active", null);
+        }
     }
 
     private void finishWithError(String errorCode, String errorMessage) {
-        if (pendingResult != null)
+        if (pendingResult != null) {
             pendingResult.error(errorCode, errorMessage, null);
+        }
         clearMethodCallAndResult();
     }
 
@@ -902,7 +883,7 @@ public class MultiImagePickerPlugin implements
     }
 
     private boolean setPendingMethodCallAndResult(
-            MethodCall methodCall, MethodChannel.Result result) {
+        MethodCall methodCall, MethodChannel.Result result) {
         if (pendingResult != null) {
             return false;
         }

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2017 Zhihu Inc.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  -->
+<resources>
+    <attr name="toolbar" format="reference"/>
+    <attr name="album.dropdown.title.color" format="reference|color"/>
+    <attr name="album.dropdown.count.color" format="reference|color"/>
+    <attr name="album.element.color" format="reference|color"/>
+    <attr name="album.thumbnail.placeholder" format="reference|color"/>
+    <attr name="album.emptyView" format="reference"/>
+    <attr name="album.emptyView.textColor" format="reference|color"/>
+    <attr name="listPopupWindowStyle" format="reference"/>
+    <attr name="page.bg" format="reference|color"/>
+    <attr name="bottomToolbar.bg" format="reference|color"/>
+    <attr name="bottomToolbar.preview.textColor" format="reference|color"/>
+    <attr name="bottomToolbar.apply.textColor" format="reference|color"/>
+    <attr name="preview.bottomToolbar.back.textColor" format="reference|color"/>
+    <attr name="preview.bottomToolbar.apply.textColor" format="reference|color"/>
+    <attr name="item.placeholder" format="reference|color"/>
+    <attr name="item.checkCircle.backgroundColor" format="reference|color"/>
+    <attr name="item.checkCircle.borderColor" format="reference|color"/>
+    <attr name="capture.textColor" format="reference|color"/>
+
+    <declare-styleable name="rv">
+        <attr name="textStyle" format="enum">
+            <enum name="black" value="0" />
+            <enum name="bold" value="1" />
+            <enum name="bolditalic" value="2" />
+            <enum name="hairline" value="3" />
+            <enum name="italic" value="4" />
+            <enum name="light" value="5" />
+            <enum name="regular" value="6" />
+            <enum name="condensedbold" value="7" />
+        </attr>
+        <attr name="compoundDrawableWidth" format="dimension"/>
+        <attr name="compoundDrawableHeight" format="dimension"/>
+        <attr name="noSpacing" format="boolean"/>
+        <attr name="caps" format="boolean" />
+        <attr name="italic" format="boolean" />
+        <attr name="customHeight" format="dimension" />
+        <attr name="noLeft" format="boolean" />
+        <attr name="noRight" format="boolean" />
+        <attr name="customBackground" format="reference" />
+        <attr name="hasBorder" format="boolean"/>
+        <attr name="day" format="reference"/>
+        <attr name="showDay" format="boolean"/>
+        <attr name="buttonProgressTintColor" format="color"/>
+        <attr name="buttonTextColor" format="color"/>
+        <attr name="buttonRounded" format="boolean"/>
+        <attr name="buttonTitle" format="reference"/>
+        <attr name="buttonSelectableBackground" format="reference"/>
+        <attr name="buttonLeftIcon" format="reference"/>
+        <attr name="buttonLeftIconTint" format="reference"/>
+        <attr name="buttonRightIcon" format="reference"/>
+        <attr name="buttonRightIconTint" format="reference"/>
+        <attr name="buttonTextSize" format="dimension"/>
+        <attr name="buttonPaddingTop" format="dimension"/>
+        <attr name="buttonPaddingBottom" format="dimension"/>
+        <attr name="buttonPaddingLeft" format="dimension"/>
+        <attr name="buttonPaddingRight" format="dimension"/>
+        <attr name="buttonSingleLine" format="boolean"/>
+        <attr name="buttonHorizontalProgress" format="boolean"/>
+        <attr name="chartStyle" format="enum">
+            <enum name="normal" value="0"/>
+            <enum name="colored" value="1"/>
+        </attr>
+        <attr name="chartSidePadding" format="dimension"/>
+        <attr name="toolTipStyle" format="enum">
+            <enum name="light" value="0"/>
+            <enum name="dark" value="1"/>
+        </attr>
+        <attr name="toolTipPosition" format="enum">
+            <enum name="bottom" value="0"/>
+            <enum name="top" value="1"/>
+        </attr>
+        <attr name="sharePreview" format="boolean"/>
+    </declare-styleable>
+</resources>
