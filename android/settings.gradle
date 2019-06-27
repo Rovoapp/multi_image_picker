@@ -1,2 +1,1 @@
-include ':android',
-        ':vendor:matisse'
+include ':vendor:matisse'
