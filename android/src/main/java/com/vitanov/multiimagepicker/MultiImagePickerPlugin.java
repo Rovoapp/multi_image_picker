@@ -656,7 +656,7 @@ public class MultiImagePickerPlugin implements
             .capture(true)
             .captureStrategy(new CaptureStrategy(true, String.format(Locale.ENGLISH, "%s.fileprovider", context.getPackageName())))
             .countable(true)
-            .maxSelectable(10 - selectedAssets.size())
+            .maxSelectable(maxImages - selectedAssets.size())
             .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
             .thumbnailScale(0.85f)
             .imageEngine(new GlideEngine())
