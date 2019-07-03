@@ -674,7 +674,6 @@ public class MultiImagePickerPlugin implements
             List<HashMap<String, Object>> result = new ArrayList<>(photos.size());
             for (Uri uri : photos) {
                 HashMap<String, Object> map = new HashMap<>();
-                map.put("identifier", uri.toString());
                 InputStream is = null;
                 File file = null;
                 int width = 0, height = 0;
@@ -686,14 +685,18 @@ public class MultiImagePickerPlugin implements
                     dbo.inScaled = false;
                     dbo.inSampleSize = 1;
                     BitmapFactory.decodeStream(is, null, dbo);
+                    is.close();
 
+                    InputStream is1 = context.getContentResolver().openInputStream(uri);
                     dbo.inJustDecodeBounds = false;
-                    Bitmap bitmap = BitmapFactory.decodeStream(is);
-                    if (is != null) {
-                        is.close();
-                    }
+                    Bitmap bitmap = BitmapFactory.decodeStream(is1, null, dbo);
+                    is1.close();
 
-                    int orientation = getOrientation(context, uri);
+                    InputStream is2 = context.getContentResolver().openInputStream(uri);
+                    ExifInterface exif = new ExifInterface(is2);
+                    is2.close();
+
+                    int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, 1);
 
                     if (orientation == 90 || orientation == 270) {
                         width = dbo.outHeight;
@@ -703,19 +706,20 @@ public class MultiImagePickerPlugin implements
                         height = dbo.outHeight;
                     }
 
-                    bitmap = applyOrientation(bitmap, orientation);
+                    Bitmap rotatedBitmap = applyOrientation(bitmap, orientation);
 
                     file = new File(Environment.getExternalStorageDirectory() + "/IMG_" + System.currentTimeMillis() + ".jpg");
                     OutputStream outStream = new FileOutputStream(file);
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outStream);
+                    rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outStream);
                     outStream.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
 
+                map.put("identifier", file != null ? Uri.fromFile(file).toString() : uri.toString());
                 map.put("width", width);
                 map.put("height", height);
-                map.put("name", file != null ? file.getPath() : getFileName(uri));
+                map.put("name", file != null ? getFileName(Uri.fromFile(file)) : getFileName(uri));
                 result.add(map);
             }
             finishWithSuccess(result);
@@ -735,27 +739,47 @@ public class MultiImagePickerPlugin implements
         return false;
     }
 
-    public static Bitmap applyOrientation(Bitmap bitmap, int orientation) {
-        int rotate = 0;
+    private Bitmap applyOrientation(Bitmap bitmap, int orientation) {
+        Matrix matrix = new Matrix();
         switch (orientation) {
-            case ExifInterface.ORIENTATION_ROTATE_270:
-                rotate = 270;
+            case ExifInterface.ORIENTATION_NORMAL:
+                return bitmap;
+            case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
+                matrix.setScale(-1, 1);
                 break;
             case ExifInterface.ORIENTATION_ROTATE_180:
-                rotate = 180;
+                matrix.setRotate(180);
+                break;
+            case ExifInterface.ORIENTATION_FLIP_VERTICAL:
+                matrix.setRotate(180);
+                matrix.postScale(-1, 1);
+                break;
+            case ExifInterface.ORIENTATION_TRANSPOSE:
+                matrix.setRotate(90);
+                matrix.postScale(-1, 1);
                 break;
             case ExifInterface.ORIENTATION_ROTATE_90:
-                rotate = 90;
+                matrix.setRotate(90);
+                break;
+            case ExifInterface.ORIENTATION_TRANSVERSE:
+                matrix.setRotate(-90);
+                matrix.postScale(-1, 1);
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                matrix.setRotate(-90);
                 break;
             default:
                 return bitmap;
         }
 
-        int w = bitmap.getWidth();
-        int h = bitmap.getHeight();
-        Matrix mtx = new Matrix();
-        mtx.postRotate(rotate);
-        return Bitmap.createBitmap(bitmap, 0, 0, w, h, mtx, true);
+        try {
+            Bitmap bmRotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+            bitmap.recycle();
+            return bmRotated;
+        } catch (OutOfMemoryError e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private HashMap<String, Object> getLatLng(@NonNull Uri uri) {
