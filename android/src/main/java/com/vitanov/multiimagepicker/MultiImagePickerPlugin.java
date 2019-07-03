@@ -59,6 +59,7 @@ import io.flutter.plugin.common.PluginRegistry;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 
 import static android.media.ThumbnailUtils.OPTIONS_RECYCLE_INPUT;
+import static android.os.Environment.DIRECTORY_PICTURES;
 import static com.vitanov.multiimagepicker.FileDirectory.getPath;
 
 /**
@@ -708,7 +709,7 @@ public class MultiImagePickerPlugin implements
 
                     Bitmap rotatedBitmap = applyOrientation(bitmap, orientation);
 
-                    file = new File(Environment.getExternalStorageDirectory() + "/IMG_" + System.currentTimeMillis() + ".jpg");
+                    file = new File(Environment.getExternalStoragePublicDirectory(DIRECTORY_PICTURES) + "/IMG_" + System.currentTimeMillis() + ".jpg");
                     OutputStream outStream = new FileOutputStream(file);
                     rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outStream);
                     outStream.close();
