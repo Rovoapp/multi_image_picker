@@ -30,8 +30,10 @@ import com.zhihu.matisse.internal.entity.CaptureStrategy;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
@@ -674,6 +676,7 @@ public class MultiImagePickerPlugin implements
                 HashMap<String, Object> map = new HashMap<>();
                 map.put("identifier", uri.toString());
                 InputStream is = null;
+                File file = null;
                 int width = 0, height = 0;
 
                 try {
@@ -683,6 +686,9 @@ public class MultiImagePickerPlugin implements
                     dbo.inScaled = false;
                     dbo.inSampleSize = 1;
                     BitmapFactory.decodeStream(is, null, dbo);
+
+                    dbo.inJustDecodeBounds = false;
+                    Bitmap bitmap = BitmapFactory.decodeStream(is);
                     if (is != null) {
                         is.close();
                     }
@@ -696,13 +702,20 @@ public class MultiImagePickerPlugin implements
                         width = dbo.outWidth;
                         height = dbo.outHeight;
                     }
+
+                    bitmap = applyOrientation(bitmap, orientation);
+
+                    file = new File(Environment.getExternalStorageDirectory() + "/IMG_" + System.currentTimeMillis() + ".jpg");
+                    OutputStream outStream = new FileOutputStream(file);
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outStream);
+                    outStream.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
 
                 map.put("width", width);
                 map.put("height", height);
-                map.put("name", getFileName(uri));
+                map.put("name", file != null ? file.getPath() : getFileName(uri));
                 result.add(map);
             }
             finishWithSuccess(result);
@@ -720,6 +733,29 @@ public class MultiImagePickerPlugin implements
             clearMethodCallAndResult();
         }
         return false;
+    }
+
+    public static Bitmap applyOrientation(Bitmap bitmap, int orientation) {
+        int rotate = 0;
+        switch (orientation) {
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                rotate = 270;
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_180:
+                rotate = 180;
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_90:
+                rotate = 90;
+                break;
+            default:
+                return bitmap;
+        }
+
+        int w = bitmap.getWidth();
+        int h = bitmap.getHeight();
+        Matrix mtx = new Matrix();
+        mtx.postRotate(rotate);
+        return Bitmap.createBitmap(bitmap, 0, 0, w, h, mtx, true);
     }
 
     private HashMap<String, Object> getLatLng(@NonNull Uri uri) {
