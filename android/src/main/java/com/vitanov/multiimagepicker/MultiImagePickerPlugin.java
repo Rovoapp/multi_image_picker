@@ -709,7 +709,14 @@ public class MultiImagePickerPlugin implements
 
                     Bitmap rotatedBitmap = applyOrientation(bitmap, orientation);
 
+                    File dir = new File(Environment.getExternalStoragePublicDirectory(DIRECTORY_PICTURES) + "/Rovo");
+                    if (!dir.exists()) {
+                        dir.mkdirs();
+                    }
                     file = new File(Environment.getExternalStoragePublicDirectory(DIRECTORY_PICTURES) + "/Rovo/IMG_" + System.currentTimeMillis() + ".jpg");
+                    if (!file.exists()) {
+                        file.createNewFile();
+                    }
                     OutputStream outStream = new FileOutputStream(file);
                     rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outStream);
                     outStream.close();
